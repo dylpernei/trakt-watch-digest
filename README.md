@@ -4,7 +4,7 @@ I've been tracking everything I watch for years — currently hundreds of shows 
 
 ## What It Does
 
-Pulls three data sources from Trakt (watchlist, in-progress shows, recent history), feeds them to Claude, and posts a curated "what to watch tonight" digest to Slack. The `/trigger` endpoint is the entry point — hit it manually or wire it up to a cron/scheduler.
+Pulls three data sources from Trakt (watchlist, in-progress shows, recent history), feeds them to Claude, and emails a curated "what to watch tonight" digest via Resend. The `/trigger` endpoint is the entry point — hit it manually or wire it up to a cron/scheduler.
 
 ## Architecture
 
@@ -23,18 +23,28 @@ Pulls three data sources from Trakt (watchlist, in-progress shows, recent histor
         └────────────┘      │    └─────┬──────┘
                             │          │
                      ┌──────▼──────────▼──┐
-                     │   Slack Webhook    │
+                     │   Resend (email)   │
                      └────────────────────┘
 ```
 
+## Live Deployment
+
+**Base URL:** `https://trakt-watch-digest-production.up.railway.app`
+
+| Action | Command |
+|--------|---------|
+| Check status | `GET https://trakt-watch-digest-production.up.railway.app/status` |
+| Preview digest (no email) | `GET https://trakt-watch-digest-production.up.railway.app/preview` |
+| Trigger digest + send email | `POST https://trakt-watch-digest-production.up.railway.app/trigger` |
+
 ## Endpoints
 
-| Endpoint   | Method | Description                                              |
-|------------|--------|----------------------------------------------------------|
-| `/`        | GET    | API info and available endpoints                         |
-| `/trigger` | POST   | Fetch data, generate digest, post to Slack               |
-| `/preview` | GET    | Same as trigger but returns digest as JSON (no Slack post)|
-| `/status`  | GET    | Health check — shows configured services and Trakt user  |
+| Endpoint   | Method | Description                                               |
+|------------|--------|-----------------------------------------------------------|
+| `/`        | GET    | API info and available endpoints                          |
+| `/trigger` | POST   | Fetch data, generate digest, send email                   |
+| `/preview` | GET    | Same as trigger but returns digest as JSON (no email sent)|
+| `/status`  | GET    | Health check — shows configured services and Trakt user   |
 
 ## Setup
 
@@ -42,13 +52,13 @@ Pulls three data sources from Trakt (watchlist, in-progress shows, recent histor
 
 - Python 3.11+
 - Trakt account + app registered at [trakt.tv/oauth/applications](https://trakt.tv/oauth/applications)
-- Slack webhook URL from a Slack app
+- Resend account + verified domain at [resend.com](https://resend.com)
 - Anthropic API key
 
 ### Local Setup
 
 ```bash
-git clone <this-repo>
+git clone https://github.com/dylpernei/trakt-watch-digest
 cd trakt-watch-digest
 
 python -m venv .venv
@@ -62,30 +72,36 @@ cp .env.example .env
 uvicorn main:app --reload
 ```
 
+Then hit `GET /status` to confirm all services are configured, and `GET /preview` to test without sending an email.
+
 ### Environment Variables
 
-| Variable            | Description                          | Where to get it                                      |
-|---------------------|--------------------------------------|------------------------------------------------------|
-| `TRAKT_CLIENT_ID`   | Your Trakt app's client ID           | trakt.tv/oauth/applications → your app → Client ID   |
-| `TRAKT_USERNAME`    | Your Trakt username                  | Your Trakt profile URL                               |
-| `ANTHROPIC_API_KEY` | Anthropic API key                    | console.anthropic.com/settings/api-keys              |
-| `SLACK_WEBHOOK_URL` | Incoming webhook URL for your channel| api.slack.com/apps → your app → Incoming Webhooks    |
+| Variable            | Description                        | Where to get it                                    |
+|---------------------|------------------------------------|----------------------------------------------------|
+| `TRAKT_CLIENT_ID`   | Your Trakt app's client ID         | trakt.tv/oauth/applications → your app → Client ID |
+| `TRAKT_USERNAME`    | Your Trakt username                | Your Trakt profile URL                             |
+| `ANTHROPIC_API_KEY` | Anthropic API key                  | console.anthropic.com/settings/api-keys            |
+| `RESEND_API_KEY`    | Resend API key                     | resend.com/api-keys                                |
+| `RESEND_FROM`       | Sender address (verified domain)   | e.g. `Digest <digest@yourdomain.com>`              |
+| `RESEND_TO`         | Recipient email address            | Your email                                         |
 
 ## Deployment (Railway)
 
 ```bash
-npm install -g @railway/cli
+brew install railway
 railway login
 railway init
+railway service
 railway up
+railway domain
 ```
 
 Then add your environment variables in the Railway dashboard under **Variables**.
 
 ## Assumptions
 
-- Trakt account is public or auth token not required for read endpoints. If your account is private, a full OAuth flow is needed — not implemented here.
-- Slack webhook is pre-configured and pointed at your desired channel.
+- Trakt account is public — no OAuth token required for read endpoints. If private, a full OAuth flow would be needed (not implemented).
+- Resend domain is verified and DNS records are propagated.
 - Claude summarizes based on show/movie titles only; no episode-level metadata is passed.
 
 ## What I'd Add Next
