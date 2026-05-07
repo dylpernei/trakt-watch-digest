@@ -4,7 +4,7 @@ I love to track the movies and tv shows that I watch, which over the years I've 
 
 ## What It Does
 
-Pulls three data sources from Trakt (watchlist, in-progress shows, recent history), feeds them to Claude, and emails a curated "what to watch tonight" digest via Resend. The `/trigger` endpoint is the entry point — hit it manually or wire it up to a cron/scheduler.
+Pulls three data sources from Trakt (watchlist, in-progress shows, recent history), feeds them to Claude, and emails a curated "what to watch tonight" digest via Resend. Hit `POST /trigger` to run the full pipeline, or `GET /preview` to see the digest without sending an email.
 
 ## Architecture
 
