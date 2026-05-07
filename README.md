@@ -1,6 +1,6 @@
 # 🎬 Trakt Watch Digest
 
-I've been tracking everything I watch for years — currently hundreds of shows and movies in Trakt. My watchlist became too big to browse, so I built this to give me an opinionated daily digest powered by Claude.
+I love to track the movies and tv shows that I watch, which over the years I've used a variety of tools for. For this, I use Trakt. My watchlist became too big to browse, so I built this to give me an opinionated daily digest powered by Claude.
 
 ## What It Does
 
